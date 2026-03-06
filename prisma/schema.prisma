@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+enum DispositionStatus {
+  NOT_CONTACTED
+  CALL_ATTENDED
+  CALL_DECLINED
+  NO_ANSWER
+  BUSY
+  WRONG_NUMBER
+  CALL_BACK
+  NOT_INTERESTED
+  INTERESTED
+  CONVERTED
+}
+
+model User {
+  id           String             @id @default(cuid())
+  email        String             @unique
+  passwordHash String
+  role         Role               @default(VIEWER)
+  createdAt    DateTime           @default(now())
+  csvFiles     CsvFile[]
+  notes        LeadNote[]
+  dispositions LeadDisposition[]
+}
+
+model CsvFile {
+  id           String   @id @default(cuid())
+  originalName String
+  uploadedBy   String
+  uploadedAt   DateTime @default(now())
+  rowCount     Int      @default(0)
+  uploader     User     @relation(fields: [uploadedBy], references: [id])
+  leads        Lead[]
+}
+
+model Lead {
+  id                String   @id @default(cuid())
+  fileId            String
+  business_name     String?
+  phone             String?
+  address           String?
+  city_state        String?
+  rating            Float?
+  review_count      Int?
+  website_domain    String?
+  claimed           String?
+  detail_path       String?
+  search_niche      String?
+  search_location   String?
+  scraped_at        String?
+  email             String?
+  website_full      String?
+  facebook          String?
+  twitter           String?
+  linkedin          String?
+  instagram         String?
+  enrichment_status String?
+  enriched_at       String?
+  extraFields       Json?
+  file              CsvFile  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  notes             LeadNote[]
+  dispositions      LeadDisposition[]
+
+  @@index([fileId])
+  @@index([business_name])
+  @@index([city_state])
+  @@index([search_niche])
+  @@index([search_location])
+  @@index([email])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@index([userId])
+}
+
+model LeadDisposition {
+  id        String            @id @default(cuid())
+  leadId    String
+  userId    String
+  status    DispositionStatus
+  note      String?
+  createdAt DateTime          @default(now())
+  lead      Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, userId])
+  @@index([leadId])
+}

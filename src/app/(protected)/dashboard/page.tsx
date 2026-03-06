@@ -142,35 +142,34 @@ export default function DashboardPage() {
 
       {/* Stats bar */}
       {(data || files.length > 0) && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Total Records</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">
-              {data ? data.total.toLocaleString() : <span className="w-12 h-7 skeleton inline-block rounded" />}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">CSV Files</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">{files.length}</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Page</p>
-            <p className="text-2xl font-bold text-gray-900 mt-0.5">
-              {data ? `${data.page} / ${data.pages}` : "—"}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 px-4 py-3 shadow-sm">
-            <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Per Page</p>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 py-2 bg-white rounded-xl border border-gray-200 shadow-sm text-sm">
+          <span className="text-gray-400">
+            <span className="font-semibold text-gray-700">{data ? data.total.toLocaleString() : "—"}</span>
+            {" "}records
+          </span>
+          <span className="text-gray-300 hidden sm:inline">·</span>
+          <span className="text-gray-400">
+            <span className="font-semibold text-gray-700">{files.length}</span>
+            {" "}file{files.length !== 1 ? "s" : ""}
+          </span>
+          <span className="text-gray-300 hidden sm:inline">·</span>
+          <span className="text-gray-400">
+            Page{" "}
+            <span className="font-semibold text-gray-700">{data ? `${data.page} / ${data.pages}` : "—"}</span>
+          </span>
+          <span className="text-gray-300 hidden sm:inline">·</span>
+          <span className="flex items-center gap-1.5 text-gray-400">
+            Rows per page:
             <select
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value))}
-              className="mt-0.5 text-2xl font-bold text-gray-900 bg-transparent border-none outline-none cursor-pointer w-full"
+              className="font-semibold text-gray-700 bg-transparent border-none outline-none cursor-pointer"
             >
               {[10, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
-          </div>
+          </span>
         </div>
       )}
 

@@ -13,9 +13,10 @@ export async function GET(
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id: leadId } = await params;
+  const isAdmin = session.user.role === "ADMIN";
 
   const dispositions = await prisma.leadDisposition.findMany({
-    where: { leadId, userId: session.user.id },
+    where: isAdmin ? { leadId } : { leadId, userId: session.user.id },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

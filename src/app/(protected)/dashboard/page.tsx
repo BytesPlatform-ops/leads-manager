@@ -44,6 +44,7 @@ export default function DashboardPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -86,6 +87,7 @@ export default function DashboardPage() {
       if ((e as Error).name !== "AbortError") console.error("[Dashboard] Error:", e);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   }, [selectedFileId, filters, limit]);
 
@@ -106,6 +108,55 @@ export default function DashboardPage() {
   const handleFiltersChange = useCallback((f: FilterState) => {
     setFilters(f);
   }, []);
+
+  if (initialLoading) {
+    return (
+      <div className="space-y-4">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="h-8 w-32 skeleton mb-2"></div>
+            <div className="h-4 w-48 skeleton"></div>
+          </div>
+          <div className="h-10 w-full sm:w-64 skeleton"></div>
+        </div>
+        
+        {/* Stats bar skeleton */}
+        <div className="h-14 skeleton rounded-xl"></div>
+        
+        {/* File chips skeleton */}
+        <div className="flex gap-2 overflow-x-auto">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-7 w-24 skeleton rounded-full shrink-0"></div>
+          ))}
+        </div>
+        
+        {/* Filter panel skeleton */}
+        <div className="h-20 skeleton rounded-xl"></div>
+        
+        {/* Table skeleton */}
+        <div className="space-y-2">
+          <div className="h-8 skeleton rounded-lg mb-2"></div>
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            <div className="h-12 bg-gray-50 border-b border-gray-200"></div>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 border-b border-gray-100"></div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Pagination skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="h-8 w-48 skeleton"></div>
+          <div className="flex gap-1">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-8 w-9 skeleton rounded-md"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">

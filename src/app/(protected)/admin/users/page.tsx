@@ -19,10 +19,12 @@ export default function AdminUsersPage() {
   const [form, setForm] = useState({ email: "", password: "", role: "VIEWER" });
   const [status, setStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [creating, setCreating] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function loadUsers() {
     const res = await fetch("/api/admin/users");
     if (res.ok) setUsers(await res.json());
+    setLoading(false);
   }
 
   useEffect(() => { loadUsers(); }, []);
@@ -56,6 +58,36 @@ export default function AdminUsersPage() {
     } else {
       setStatus({ type: "error", msg: data.error ?? "Failed to delete user" });
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-2xl mx-auto">
+        <div>
+          <div className="h-8 w-24 skeleton mb-2"></div>
+          <div className="h-4 w-80 skeleton"></div>
+        </div>
+        
+        {/* Create form skeleton */}
+        <div className="h-80 skeleton rounded-lg"></div>
+        
+        {/* Users list skeleton */}
+        <div className="rounded-lg border border-gray-200 overflow-hidden">
+          <div className="h-16 bg-gray-50 border-b border-gray-200"></div>
+          <div className="divide-y divide-gray-100">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="px-6 py-3.5 flex items-center gap-3">
+                <div className="h-9 w-9 skeleton rounded-full shrink-0"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 skeleton"></div>
+                  <div className="h-3 w-32 skeleton"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

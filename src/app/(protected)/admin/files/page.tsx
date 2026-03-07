@@ -26,6 +26,7 @@ export default function AdminFilesPage() {
   const [dragging, setDragging] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [customName, setCustomName] = useState("");
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function loadFiles() {
@@ -34,6 +35,7 @@ export default function AdminFilesPage() {
       const data = await res.json();
       setFiles(data);
     }
+    setLoading(false);
   }
 
   useEffect(() => { loadFiles(); }, []);
@@ -93,6 +95,36 @@ export default function AdminFilesPage() {
     const file = e.target.files?.[0];
     if (file) previewCsv(file);
     e.target.value = "";
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto">
+        <div>
+          <div className="h-8 w-32 skeleton mb-2"></div>
+          <div className="h-4 w-96 skeleton"></div>
+        </div>
+        
+        {/* Upload card skeleton */}
+        <div className="h-96 skeleton rounded-lg"></div>
+        
+        {/* Files list skeleton */}
+        <div className="rounded-lg border border-gray-200 overflow-hidden">
+          <div className="h-16 bg-gray-50 border-b border-gray-200"></div>
+          <div className="divide-y divide-gray-100">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="px-6 py-3 flex items-center gap-3">
+                <div className="h-10 w-10 skeleton rounded-xl shrink-0"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-48 skeleton"></div>
+                  <div className="h-3 w-64 skeleton"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

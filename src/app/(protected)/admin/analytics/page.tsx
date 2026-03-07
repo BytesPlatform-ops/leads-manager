@@ -275,11 +275,47 @@ export default function AdminAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex items-center gap-2 text-gray-500">
-          <RefreshCw className="h-5 w-5 animate-spin" />
-          <span>Loading analytics...</span>
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="h-8 w-48 skeleton mb-2"></div>
+              <div className="h-4 w-64 skeleton"></div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="h-9 w-32 skeleton rounded-lg"></div>
+            <div className="h-9 w-24 skeleton rounded-lg"></div>
+            <div className="h-9 w-24 skeleton rounded-lg"></div>
+          </div>
         </div>
+
+        {/* Stats cards skeleton */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-28 skeleton rounded-lg"></div>
+          ))}
+        </div>
+
+        {/* Charts skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-80 skeleton rounded-lg"></div>
+          ))}
+        </div>
+
+        {/* More charts skeleton */}
+        <div className="h-80 skeleton rounded-lg"></div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-80 skeleton rounded-lg"></div>
+          ))}
+        </div>
+
+        {/* Table skeleton */}
+        <div className="h-96 skeleton rounded-lg"></div>
       </div>
     );
   }

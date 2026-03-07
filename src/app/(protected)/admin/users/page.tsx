@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 max-w-2xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Users</h1>
         <p className="text-sm text-gray-500 mt-1">Manage who has access to the leads manager.</p>
@@ -139,7 +139,7 @@ export default function AdminUsersPage() {
                 const initial = u.email[0].toUpperCase();
                 const isAdmin = u.role === "ADMIN";
                 return (
-                  <div key={u.id} className="flex items-center justify-between px-6 py-3.5 hover:bg-gray-50 transition-colors">
+                  <div key={u.id} className="flex items-center justify-between px-4 sm:px-6 py-3.5 hover:bg-gray-50 transition-colors gap-2">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm ${
                         isAdmin

@@ -9,8 +9,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
-        <nav className="flex gap-1">
+      <div className="flex items-center gap-2 pb-2 border-b border-gray-200 overflow-x-auto">
+        <nav className="flex gap-1 min-w-max">
           <Link
             href="/admin/analytics"
             className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"

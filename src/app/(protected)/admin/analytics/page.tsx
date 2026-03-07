@@ -302,7 +302,7 @@ export default function AdminAnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {selectedUser && (
             <button
@@ -323,12 +323,12 @@ export default function AdminAnalyticsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Period quick select */}
           <Select
             value={filters.period}
             onChange={(e) => applyFilters({ period: e.target.value })}
-            className="h-9 w-36 text-sm"
+            className="h-9 w-full sm:w-36 text-sm"
           >
             {PERIOD_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -378,7 +378,7 @@ export default function AdminAnalyticsPage() {
       {showFilters && (
         <Card>
           <CardContent className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-gray-500 uppercase tracking-wider">File</label>
                 <Select
@@ -479,7 +479,7 @@ export default function AdminAnalyticsPage() {
       {selectedUser && (
         <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <CardContent className="p-5">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Role</p>
                 <p className={`text-sm font-semibold mt-1 ${selectedUser.role === "ADMIN" ? "text-purple-700" : "text-emerald-700"}`}>
@@ -512,7 +512,7 @@ export default function AdminAnalyticsPage() {
       )}
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard
           title="Total Leads"
           value={data.overview.totalLeads.toLocaleString()}
@@ -591,7 +591,7 @@ export default function AdminAnalyticsPage() {
                 </FunnelChart>
               </ResponsiveContainer>
             </div>
-            <div className="grid grid-cols-4 gap-2 mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
               {data.funnel.map((stage, i) => (
                 <div key={stage.stage} className="text-center">
                   <div
@@ -933,8 +933,8 @@ export default function AdminAnalyticsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">

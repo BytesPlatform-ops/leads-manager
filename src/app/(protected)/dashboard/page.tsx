@@ -121,12 +121,12 @@ export default function DashboardPage() {
         </div>
 
         {/* File selector */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <span className="text-sm text-gray-500 shrink-0">Source file:</span>
           <Select
             value={selectedFileId}
             onChange={(e) => { setSelectedFileId(e.target.value); setPage(1); }}
-            className="w-auto min-w-[180px] max-w-[280px]"
+            className="w-full sm:w-auto sm:min-w-[180px] sm:max-w-[280px]"
           >
             <option value="">
               All Files {files.length > 0 ? `(${files.length})` : ""}
@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
       {/* Stats bar */}
       {(data || files.length > 0) && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 py-2 bg-white rounded-xl border border-gray-200 shadow-sm text-sm">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 px-3 py-2 bg-white rounded-xl border border-gray-200 shadow-sm text-xs sm:text-sm overflow-x-auto">
           <span className="text-gray-400">
             <span className="font-semibold text-gray-700">{data ? data.total.toLocaleString() : "—"}</span>
             {" "}records
@@ -175,10 +175,10 @@ export default function DashboardPage() {
 
       {/* File chips (quick access) */}
       {files.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-nowrap sm:flex-wrap gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
           <button
             onClick={() => { setSelectedFileId(""); setPage(1); }}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors shrink-0 ${
               selectedFileId === ""
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
@@ -191,7 +191,7 @@ export default function DashboardPage() {
             <button
               key={f.id}
               onClick={() => { setSelectedFileId(f.id); setPage(1); }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors shrink-0 ${
                 selectedFileId === f.id
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
@@ -224,8 +224,8 @@ export default function DashboardPage() {
 
       {/* Pagination */}
       {data && data.pages >= 1 && (
-        <div className="flex items-center justify-between text-sm gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <span className="text-gray-500">
               Page {data.page} of {data.pages} · {data.total.toLocaleString()} total
             </span>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
               </select>
             </div>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 w-full sm:w-auto justify-center sm:justify-end">
             <Button
               variant="outline"
               size="sm"

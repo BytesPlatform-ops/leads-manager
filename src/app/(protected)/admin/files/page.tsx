@@ -96,7 +96,7 @@ export default function AdminFilesPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">CSV Files</h1>
         <p className="text-sm text-gray-500 mt-1">Upload CSV files to populate leads. Each file is stored separately and remains accessible from the dashboard.</p>
@@ -205,8 +205,8 @@ export default function AdminFilesPage() {
           ) : (
             <div className="divide-y divide-gray-100">
               {files.map((f) => (
-                <div key={f.id} className="flex items-center justify-between px-6 py-3 hover:bg-gray-50">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={f.id} className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-gray-50 gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                       <FileText className="h-5 w-5 text-blue-600" />
                     </div>

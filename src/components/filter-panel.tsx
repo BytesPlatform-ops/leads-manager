@@ -184,7 +184,7 @@ export function FilterPanel({ filters, onChange, fileId }: FilterPanelProps) {
 
         {/* Expanded filter grid */}
         {expanded && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-2.5 border-t border-gray-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2.5 border-t border-gray-100">
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Niche</label>
               <Select value={filters.niche} onChange={(e) => setFilter("niche", e.target.value)}>

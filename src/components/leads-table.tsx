@@ -225,9 +225,9 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
   const totalCustomized = hiddenCount + extraShownCount;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0">
       {/* Toolbar */}
-      <div className="flex items-center justify-between min-h-[28px]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[28px]">
         <p className="text-xs text-gray-400">
           {extraKeys.length > 0
             ? `${extraKeys.length} extra column${extraKeys.length !== 1 ? "s" : ""} from this CSV — show them via Columns`

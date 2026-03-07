@@ -36,7 +36,7 @@ export function Drawer({ open, onClose, title, children }: DrawerProps) {
       <div
         ref={ref}
         className={cn(
-          "fixed right-0 top-0 h-full w-full max-w-lg bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300",
+          "fixed right-0 top-0 h-full w-full sm:max-w-lg bg-white z-50 shadow-2xl flex flex-col transition-transform duration-300",
           open ? "translate-x-0" : "translate-x-full"
         )}
       >

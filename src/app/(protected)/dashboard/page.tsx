@@ -43,8 +43,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start as true to show loading on first render
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -87,7 +86,6 @@ export default function DashboardPage() {
       if ((e as Error).name !== "AbortError") console.error("[Dashboard] Error:", e);
     } finally {
       setLoading(false);
-      setInitialLoading(false);
     }
   }, [selectedFileId, filters, limit]);
 
@@ -109,7 +107,8 @@ export default function DashboardPage() {
     setFilters(f);
   }, []);
 
-  if (initialLoading) {
+  // Show skeleton when: first load, or loading without any data yet
+  if (!data) {
     return (
       <div className="space-y-4">
         {/* Header skeleton */}
@@ -269,6 +268,7 @@ export default function DashboardPage() {
           <LeadsTable
             data={data?.leads ?? []}
             onRowClick={(lead) => setSelectedLead(lead)}
+            loading={loading}
           />
         </div>
       </div>

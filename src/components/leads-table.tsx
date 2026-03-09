@@ -8,8 +8,8 @@ import {
   SortingState,
   getSortedRowModel,
 } from "@tanstack/react-table";
-import { ChevronUp, ChevronDown, ChevronsUpDown, Database, Settings2, X, MessageSquare } from "lucide-react";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { ChevronUp, ChevronDown, ChevronsUpDown, Database, MessageSquare } from "lucide-react";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
 const DISPOSITION_COLORS: Record<string, string> = {
@@ -43,6 +43,7 @@ type Lead = Record<string, unknown>;
 interface LeadsTableProps {
   data: Lead[];
   onRowClick: (lead: Lead) => void;
+  loading?: boolean;
 }
 
 const CORE_COLUMNS: { key: string; label: string; width: number }[] = [
@@ -97,12 +98,8 @@ function renderCoreCell(key: string, val: unknown) {
   return <span className="truncate block max-w-[160px]" title={str}>{str}</span>;
 }
 
-export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
+export function LeadsTable({ data, onRowClick, loading = false }: LeadsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [hiddenCoreKeys, setHiddenCoreKeys] = useState<Set<string>>(new Set());
-  const [visibleExtraKeys, setVisibleExtraKeys] = useState<Set<string>>(new Set());
-  const [colPickerOpen, setColPickerOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
   // Auto-detect extra column keys from extraFields on current page
   const extraKeys = useMemo(() => {
@@ -113,17 +110,6 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
     }
     return Array.from(keys).sort();
   }, [data]);
-
-  // Close picker on outside click
-  useEffect(() => {
-    if (!colPickerOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node))
-        setColPickerOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [colPickerOpen]);
 
   // Build TanStack column definitions
   const columns = useMemo<ColumnDef<Lead>[]>(() => {
@@ -180,35 +166,31 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
       },
     ];
 
-    const core: ColumnDef<Lead>[] = CORE_COLUMNS
-      .filter((col) => !hiddenCoreKeys.has(col.key))
-      .map((col) => ({
-        id: col.key,
-        accessorKey: col.key,
-        header: col.label,
-        size: col.width,
-        cell: ({ getValue }) => renderCoreCell(col.key, getValue()),
-      }));
+    const core: ColumnDef<Lead>[] = CORE_COLUMNS.map((col) => ({
+      id: col.key,
+      accessorKey: col.key,
+      header: col.label,
+      size: col.width,
+      cell: ({ getValue }) => renderCoreCell(col.key, getValue()),
+    }));
 
-    const extra: ColumnDef<Lead>[] = extraKeys
-      .filter((k) => visibleExtraKeys.has(k))
-      .map((key) => ({
-        id: `extra__${key}`,
-        header: key.replace(/_/g, " "),
-        size: 140,
-        accessorFn: (row: Lead) => {
-          const ef = row.extraFields as Record<string, unknown> | null | undefined;
-          return ef?.[key] ?? "";
-        },
-        cell: ({ getValue }) => {
-          const v = getValue() as string;
-          if (!v) return <span className="text-gray-300">—</span>;
-          return <span className="truncate block max-w-[140px] capitalize" title={v}>{v}</span>;
-        },
-      }));
+    const extra: ColumnDef<Lead>[] = extraKeys.map((key) => ({
+      id: `extra__${key}`,
+      header: key.replace(/_/g, " "),
+      size: 140,
+      accessorFn: (row: Lead) => {
+        const ef = row.extraFields as Record<string, unknown> | null | undefined;
+        return ef?.[key] ?? "";
+      },
+      cell: ({ getValue }) => {
+        const v = getValue() as string;
+        if (!v) return <span className="text-gray-300">—</span>;
+        return <span className="truncate block max-w-[140px] capitalize" title={v}>{v}</span>;
+      },
+    }));
 
     return [...indicatorCols, ...core, ...extra];
-  }, [hiddenCoreKeys, visibleExtraKeys, extraKeys]);
+  }, [extraKeys]);
 
   const table = useReactTable({
     data,
@@ -220,122 +202,16 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
     manualSorting: false,
   });
 
-  const hiddenCount = hiddenCoreKeys.size;
-  const extraShownCount = [...visibleExtraKeys].filter((k) => extraKeys.includes(k)).length;
-  const totalCustomized = hiddenCount + extraShownCount;
-
   return (
     <div className="space-y-2 min-w-0">
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-h-[28px]">
-        <p className="text-xs text-gray-400">
-          {extraKeys.length > 0
-            ? `${extraKeys.length} extra column${extraKeys.length !== 1 ? "s" : ""} from this CSV — show them via Columns`
-            : null}
-        </p>
-
-        {/* Column picker */}
-        <div className="relative" ref={pickerRef}>
-          <button
-            onClick={() => setColPickerOpen((v) => !v)}
-            className={cn(
-              "flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border font-medium transition-colors",
-              totalCustomized > 0
-                ? "border-blue-200 bg-blue-50 text-blue-700"
-                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-            )}
-          >
-            <Settings2 className="h-3.5 w-3.5" />
-            Columns
-            {totalCustomized > 0 && (
-              <span className="ml-0.5 bg-blue-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
-                {totalCustomized}
-              </span>
-            )}
-          </button>
-
-          {colPickerOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 z-30 overflow-hidden animate-fade-in">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Column Visibility</span>
-                <button onClick={() => setColPickerOpen(false)} className="text-gray-400 hover:text-gray-600 rounded hover:bg-gray-100 p-0.5">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Core columns */}
-              <div className="p-3 max-h-56 overflow-y-auto">
-                <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider px-1 mb-1.5">
-                  Core Fields
-                </p>
-                {CORE_COLUMNS.map((col) => (
-                  <label key={col.key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={!hiddenCoreKeys.has(col.key)}
-                      onChange={(e) => {
-                        setHiddenCoreKeys((prev) => {
-                          const next = new Set(prev);
-                          e.target.checked ? next.delete(col.key) : next.add(col.key);
-                          return next;
-                        });
-                      }}
-                      className="rounded accent-blue-600"
-                    />
-                    <span className="text-sm text-gray-700">{col.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              {/* Extra columns from CSV */}
-              {extraKeys.length > 0 && (
-                <div className="border-t border-gray-100 p-3 max-h-56 overflow-y-auto">
-                  <div className="flex items-center justify-between px-1 mb-1.5">
-                    <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-                      Extra Fields (from CSV)
-                    </p>
-                    <button
-                      onClick={() => setVisibleExtraKeys(new Set(extraKeys))}
-                      className="text-[10px] text-blue-600 hover:underline font-medium"
-                    >
-                      Show all
-                    </button>
-                  </div>
-                  {extraKeys.map((key) => (
-                    <label key={key} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-gray-50 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={visibleExtraKeys.has(key)}
-                        onChange={(e) => {
-                          setVisibleExtraKeys((prev) => {
-                            const next = new Set(prev);
-                            e.target.checked ? next.add(key) : next.delete(key);
-                            return next;
-                          });
-                        }}
-                        className="rounded accent-blue-600"
-                      />
-                      <span className="text-sm text-gray-700 capitalize">{key.replace(/_/g, " ")}</span>
-                    </label>
-                  ))}
-                </div>
-              )}
-
-              {/* Reset */}
-              {totalCustomized > 0 && (
-                <div className="border-t border-gray-100 px-4 py-2.5">
-                  <button
-                    onClick={() => { setHiddenCoreKeys(new Set()); setVisibleExtraKeys(new Set()); }}
-                    className="text-xs text-gray-500 hover:text-gray-700 font-medium"
-                  >
-                    ↺ Reset to defaults
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+      {/* Info bar */}
+      {extraKeys.length > 0 && (
+        <div className="flex items-center gap-2 min-h-[28px]">
+          <p className="text-xs text-gray-500">
+            Showing {CORE_COLUMNS.length} core columns + {extraKeys.length} extra field{extraKeys.length !== 1 ? "s" : ""} from this CSV
+          </p>
         </div>
-      </div>
+      )}
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -369,15 +245,27 @@ export function LeadsTable({ data, onRowClick }: LeadsTableProps) {
             {table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-16 text-center">
-                  <div className="flex flex-col items-center gap-3 text-gray-400">
-                    <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                      <Database className="h-6 w-6 text-gray-300" />
+                  {loading ? (
+                    <div className="flex flex-col items-center gap-3 text-gray-400">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        <div className="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-500">Loading leads...</p>
+                        <p className="text-xs mt-0.5">Please wait while we fetch your data</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-500">No leads found</p>
-                      <p className="text-xs mt-0.5">Try adjusting your search or filters</p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-gray-400">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Database className="h-6 w-6 text-gray-300" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-500">No leads found</p>
+                        <p className="text-xs mt-0.5">Try adjusting your search or filters</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </td>
               </tr>
             ) : (

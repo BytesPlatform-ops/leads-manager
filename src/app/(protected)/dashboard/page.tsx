@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { LeadsTable } from "@/components/leads-table";
 import { FilterPanel, FilterState } from "@/components/filter-panel";
 import { LeadDetailDrawer } from "@/components/lead-detail-drawer";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Layers, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Layers, FileText, X } from "lucide-react";
 
 type Lead = Record<string, unknown>;
 
@@ -37,6 +38,8 @@ const DEFAULT_FILTERS: FilterState = {
 };
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === "ADMIN";
   const [files, setFiles] = useState<CsvFile[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string>(""); // "" = all files
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -238,18 +241,45 @@ export default function DashboardPage() {
             All Files
           </button>
           {files.map((f) => (
-            <button
+            <div
               key={f.id}
-              onClick={() => { setSelectedFileId(f.id); setPage(1); }}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors shrink-0 ${
+              className={`flex items-center gap-1 rounded-full text-xs font-medium border transition-colors shrink-0 ${
                 selectedFileId === f.id
                   ? "bg-blue-600 text-white border-blue-600"
                   : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
               }`}
             >
-              <FileText className="h-3.5 w-3.5" />
-              {f.originalName}
-            </button>
+              <button
+                onClick={() => { setSelectedFileId(f.id); setPage(1); }}
+                className="flex items-center gap-1.5 pl-3 py-1 pr-1"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                {f.originalName}
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!confirm(`Delete "${f.originalName}" and all its leads? This cannot be undone.`)) return;
+                    fetch(`/api/admin/files/${f.id}`, { method: "DELETE" })
+                      .then((res) => {
+                        if (res.ok) {
+                          setFiles((prev) => prev.filter((file) => file.id !== f.id));
+                          if (selectedFileId === f.id) setSelectedFileId("");
+                        }
+                      });
+                  }}
+                  className={`p-1 mr-1 rounded-full transition-colors ${
+                    selectedFileId === f.id
+                      ? "hover:bg-blue-500"
+                      : "hover:bg-red-100 hover:text-red-600"
+                  }`}
+                  title="Delete file"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}

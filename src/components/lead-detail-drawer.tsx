@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Drawer } from "@/components/ui/drawer";
-import { ExternalLink, Copy, Check, Building2, Phone, Globe, Share2, Tag, Clock, PhoneCall, MessageSquare, ChevronDown, ChevronUp, Send, Loader2 } from "lucide-react";
+import { ExternalLink, Copy, Check, Share2, Tag, PhoneCall, MessageSquare, ChevronDown, ChevronUp, Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Lead = Record<string, unknown>;
@@ -47,61 +47,24 @@ function dispositionBadge(status: string) {
   );
 }
 
-const SECTIONS = [
-  {
-    title: "Business",
-    icon: Building2,
-    fields: [
-      { key: "business_name", label: "Business Name" },
-      { key: "address", label: "Address" },
-      { key: "city_state", label: "City / State" },
-      { key: "search_niche", label: "Niche" },
-      { key: "search_location", label: "Search Location" },
-      { key: "rating", label: "Rating" },
-      { key: "review_count", label: "Review Count" },
-      { key: "claimed", label: "Claimed" },
-    ],
-  },
-  {
-    title: "Contact",
-    icon: Phone,
-    fields: [
-      { key: "phone", label: "Phone" },
-      { key: "email", label: "Email" },
-    ],
-  },
-  {
-    title: "Web & Social",
-    icon: Globe,
-    fields: [
-      { key: "website_domain", label: "Website" },
-      { key: "website_full", label: "Full URL" },
-      { key: "facebook", label: "Facebook" },
-      { key: "twitter", label: "Twitter" },
-      { key: "linkedin", label: "LinkedIn" },
-      { key: "instagram", label: "Instagram" },
-    ],
-  },
-  {
-    title: "Enrichment",
-    icon: Tag,
-    fields: [
-      { key: "enrichment_status", label: "Status" },
-      { key: "enriched_at", label: "Enriched At" },
-    ],
-  },
-  {
-    title: "Metadata",
-    icon: Clock,
-    fields: [
-      { key: "scraped_at", label: "Scraped At" },
-      { key: "detail_path", label: "Detail Path" },
-    ],
-  },
-];
+// Fields to hide from display
+const HIDDEN_FIELDS = new Set([
+  "id", "fileId", "file", "extraFields", "notes", "dispositions",
+  "_myDisposition", "_isUsed", "_noteCount", "createdAt", "updatedAt"
+]);
 
+// Fields that should render as links
 const URL_KEYS = new Set(["website_full", "website_domain", "facebook", "twitter", "linkedin", "instagram", "detail_path"]);
 const COPY_KEYS = new Set(["phone", "email", "website_domain", "website_full"]);
+
+function formatFieldLabel(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
 
 interface LeadDetailDrawerProps {
   lead: Lead | null;
@@ -281,11 +244,26 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange }: LeadDetailDr
 
   if (!lead) return null;
 
+  // Build all fields to display (direct + extra)
+  const allFields: { key: string; value: unknown; isExtra: boolean }[] = [];
+  
+  // Add direct fields from lead object
+  Object.entries(lead).forEach(([key, value]) => {
+    if (!HIDDEN_FIELDS.has(key) && value !== null && value !== undefined && value !== "") {
+      allFields.push({ key, value, isExtra: false });
+    }
+  });
+  
+  // Add extra fields
   const extraFields = (lead.extraFields ?? {}) as Record<string, unknown>;
-  const extraEntries = Object.entries(extraFields).filter(([, v]) => v !== "" && v !== null && v !== undefined);
+  Object.entries(extraFields).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      allFields.push({ key, value, isExtra: true });
+    }
+  });
 
   return (
-    <Drawer open={!!lead} onClose={onClose} title={String(lead.business_name ?? "Lead Details")}>
+    <Drawer open={!!lead} onClose={onClose} title={String(lead.business_name ?? lead.name ?? "Lead Details")}>
       <div className="space-y-5">
         {/* File source badge */}
         {(lead.file as { originalName?: string } | undefined)?.originalName && (
@@ -427,47 +405,20 @@ export function LeadDetailDrawer({ lead, onClose, onStatusChange }: LeadDetailDr
           </div>
         )}
 
-        {/* Sections */}
-        {SECTIONS.map(({ title, icon: Icon, fields }) => {
-          const populated = fields.filter(({ key }) => {
-            const v = lead[key];
-            return v !== null && v !== undefined && v !== "";
-          });
-          if (populated.length === 0) return null;
-          return (
-            <div key={title} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
-                  <Icon className="h-3.5 w-3.5 text-blue-600" />
-                </div>
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</h3>
-              </div>
-              <div className="bg-gray-50 rounded-xl divide-y divide-gray-100 overflow-hidden">
-                {populated.map(({ key, label }) => (
-                  <div key={key} className="px-4 py-2.5 flex flex-col gap-0.5">
-                    <span className="text-xs text-gray-400 font-medium">{label}</span>
-                    <FieldValue fieldKey={key} value={lead[key]} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* Extra fields */}
-        {extraEntries.length > 0 && (
+        {/* All Fields */}
+        {allFields.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center">
-                <Tag className="h-3.5 w-3.5 text-gray-500" />
+              <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                <Tag className="h-3.5 w-3.5 text-blue-600" />
               </div>
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Additional Fields</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Lead Information</h3>
             </div>
             <div className="bg-gray-50 rounded-xl divide-y divide-gray-100 overflow-hidden">
-              {extraEntries.map(([key, val]) => (
+              {allFields.map(({ key, value }) => (
                 <div key={key} className="px-4 py-2.5 flex flex-col gap-0.5">
-                  <span className="text-xs text-gray-400 font-medium capitalize">{key.replace(/_/g, " ")}</span>
-                  <span className="text-gray-900 break-words text-sm">{String(val)}</span>
+                  <span className="text-xs text-gray-400 font-medium">{formatFieldLabel(key)}</span>
+                  <FieldValue fieldKey={key} value={value} />
                 </div>
               ))}
             </div>

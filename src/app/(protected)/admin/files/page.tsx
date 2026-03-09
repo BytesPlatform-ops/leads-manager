@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload, FileText, Trash2, CheckCircle, AlertCircle, Info, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 interface CsvFile {
   id: string;
@@ -40,22 +41,63 @@ export default function AdminFilesPage() {
 
   useEffect(() => { loadFiles(); }, []);
 
-  function previewCsv(file: File) {
-    setUpload({ status: "parsing", message: "Parsing CSV…" });
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split(/\r?\n/).filter((l) => l.trim());
-      const cols = lines[0]?.split(",").map((c) => c.replace(/"/g, "").trim()) ?? [];
-      setUpload({
-        status: "idle",
-        message: "",
-        preview: { name: file.name, rows: lines.length - 1, cols },
-      });
-      setPendingFile(file);
-      setCustomName(file.name.replace(/\.csv$/i, ""));
-    };
-    reader.readAsText(file);
+  function previewFile(file: File) {
+    const isCSV = file.name.toLowerCase().endsWith(".csv");
+    const isXLSX = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+    
+    if (!isCSV && !isXLSX) {
+      setUpload({ status: "error", message: "Only CSV and Excel (.xlsx, .xls) files are accepted" });
+      return;
+    }
+    
+    setUpload({ status: "parsing", message: `Parsing ${isXLSX ? "Excel" : "CSV"} file…` });
+    
+    if (isXLSX) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: "array" });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+          
+          if (jsonData.length < 2) {
+            setUpload({ status: "error", message: "Excel file has no data rows" });
+            return;
+          }
+          
+          const cols = (jsonData[0] as string[]).map(h => String(h).trim()).filter(Boolean);
+          const rows = jsonData.slice(1).filter((row: string[]) => row.some(cell => String(cell).trim())).length;
+          
+          setUpload({
+            status: "idle",
+            message: "",
+            preview: { name: file.name, rows, cols },
+          });
+          setPendingFile(file);
+          setCustomName(file.name.replace(/\.(xlsx|xls)$/i, ""));
+        } catch {
+          setUpload({ status: "error", message: "Failed to parse Excel file" });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split(/\r?\n/).filter((l) => l.trim());
+        const cols = lines[0]?.split(",").map((c) => c.replace(/"/g, "").trim()) ?? [];
+        setUpload({
+          status: "idle",
+          message: "",
+          preview: { name: file.name, rows: lines.length - 1, cols },
+        });
+        setPendingFile(file);
+        setCustomName(file.name.replace(/\.csv$/i, ""));
+      };
+      reader.readAsText(file);
+    }
   }
 
   async function handleUpload() {
@@ -88,12 +130,12 @@ export default function AdminFilesPage() {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file?.name.endsWith(".csv")) previewCsv(file);
+    if (file) previewFile(file);
   }
 
   function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) previewCsv(file);
+    if (file) previewFile(file);
     e.target.value = "";
   }
 
@@ -130,8 +172,8 @@ export default function AdminFilesPage() {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">CSV Files</h1>
-        <p className="text-sm text-gray-500 mt-1">Upload CSV files to populate leads. Each file is stored separately and remains accessible from the dashboard.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Files</h1>
+        <p className="text-sm text-gray-500 mt-1">Upload CSV or Excel files to populate leads. Each file is stored separately and remains accessible from the dashboard.</p>
       </div>
 
       {/* Upload card */}
@@ -152,9 +194,9 @@ export default function AdminFilesPage() {
             onClick={() => fileInputRef.current?.click()}
           >
             <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">Drop a CSV file here, or click to browse</p>
-            <p className="text-xs text-gray-400 mt-1">Only .csv files are accepted</p>
-            <input ref={fileInputRef} type="file" accept=".csv" hidden onChange={onFileInput} />
+            <p className="text-sm font-medium text-gray-700">Drop a CSV or Excel file here, or click to browse</p>
+            <p className="text-xs text-gray-400 mt-1">Accepts .csv, .xlsx, and .xls files</p>
+            <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" hidden onChange={onFileInput} />
           </div>
 
           {/* Preview */}

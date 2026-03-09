@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import * as XLSX from "xlsx";
 
 const KNOWN_FIELDS = new Set([
   "business_name", "phone", "address", "city_state", "rating",
@@ -21,8 +22,11 @@ export async function POST(req: NextRequest) {
   const file = formData.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file provided" }, { status: 400 });
 
-  if (!file.name.endsWith(".csv")) {
-    return NextResponse.json({ error: "Only CSV files are accepted" }, { status: 400 });
+  const isCSV = file.name.toLowerCase().endsWith(".csv");
+  const isXLSX = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+  
+  if (!isCSV && !isXLSX) {
+    return NextResponse.json({ error: "Only CSV and Excel (.xlsx, .xls) files are accepted" }, { status: 400 });
   }
 
   const rawCustomName = (formData.get("customName") as string | null)?.trim();
@@ -31,14 +35,37 @@ export async function POST(req: NextRequest) {
     ? rawCustomName.replace(/[\\/]/g, "").slice(0, 200) || file.name
     : file.name;
 
-  const text = await file.text();
-  const lines = text.split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length < 2) {
-    return NextResponse.json({ error: "CSV has no data rows" }, { status: 400 });
+  let headers: string[] = [];
+  let dataLines: string[][] = [];
+
+  if (isXLSX) {
+    // Parse Excel file
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer, { type: "array" });
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const jsonData = XLSX.utils.sheet_to_json<string[]>(worksheet, { header: 1, defval: "" });
+    
+    if (jsonData.length < 2) {
+      return NextResponse.json({ error: "Excel file has no data rows" }, { status: 400 });
+    }
+    
+    headers = (jsonData[0] as string[]).map(h => String(h).trim());
+    dataLines = jsonData.slice(1).filter((row: string[]) => row.some(cell => String(cell).trim()));
+  } else {
+    // Parse CSV file
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    if (lines.length < 2) {
+      return NextResponse.json({ error: "CSV has no data rows" }, { status: 400 });
+    }
+    headers = parseCsvLine(lines[0]);
+    dataLines = lines.slice(1).map(line => parseCsvLine(line));
   }
 
-  // Parse header
-  const headers = parseCsvLine(lines[0]);
+  if (dataLines.length === 0) {
+    return NextResponse.json({ error: "File has no data rows" }, { status: 400 });
+  }
 
   // Create CsvFile record
   const csvFile = await prisma.csvFile.create({
@@ -53,15 +80,14 @@ export async function POST(req: NextRequest) {
   const CHUNK = 500;
   let count = 0;
 
-  for (let i = 1; i < lines.length; i += CHUNK) {
-    const chunk = lines.slice(i, i + CHUNK);
-    const records = chunk.map((line) => {
-      const values = parseCsvLine(line);
+  for (let i = 0; i < dataLines.length; i += CHUNK) {
+    const chunk = dataLines.slice(i, i + CHUNK);
+    const records = chunk.map((values) => {
       const known: Record<string, unknown> = { fileId: csvFile.id };
       const extra: Record<string, string> = {};
 
       headers.forEach((header, idx) => {
-        const val = values[idx] ?? "";
+        const val = String(values[idx] ?? "").trim();
         const key = header.trim().toLowerCase().replace(/\s+/g, "_");
         if (KNOWN_FIELDS.has(key)) {
           if (key === "rating") {
@@ -71,7 +97,7 @@ export async function POST(req: NextRequest) {
           } else {
             known[key] = val || null;
           }
-        } else {
+        } else if (key) {
           extra[key] = val;
         }
       });

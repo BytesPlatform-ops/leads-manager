@@ -46,69 +46,73 @@ interface LeadsTableProps {
   loading?: boolean;
 }
 
-const CORE_COLUMNS: { key: string; label: string; width: number }[] = [
-  { key: "business_name",    label: "Business",        width: 200 },
-  { key: "phone",            label: "Phone",           width: 130 },
-  { key: "city_state",       label: "City / State",    width: 150 },
-  { key: "email",            label: "Email",           width: 200 },
-  { key: "website_domain",   label: "Website",         width: 160 },
-  { key: "rating",           label: "Rating",          width: 80  },
-  { key: "review_count",     label: "Reviews",         width: 80  },
-  { key: "claimed",          label: "Claimed",         width: 80  },
-  { key: "search_niche",     label: "Niche",           width: 120 },
-  { key: "search_location",  label: "Search Location", width: 140 },
-  { key: "enrichment_status",label: "Enriched",        width: 100 },
-];
+// Fields to exclude from display (internal/system fields)
+const HIDDEN_FIELDS = new Set([
+  "id", "fileId", "file", "extraFields", "notes", "dispositions",
+  "_myDisposition", "_isUsed", "_noteCount", "createdAt", "updatedAt"
+]);
 
-function renderCoreCell(key: string, val: unknown) {
+// Fields that get special rendering
+const LINK_FIELDS = new Set(["website_domain", "website_full", "facebook", "twitter", "linkedin", "instagram"]);
+
+function formatHeader(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .split(" ")
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function renderCell(key: string, val: unknown) {
   if (val === null || val === undefined || val === "")
     return <span className="text-gray-300">—</span>;
+  
   const str = String(val);
-  if (key === "website_domain" || key === "website_full") {
+  
+  // Links (websites, social media)
+  if (LINK_FIELDS.has(key)) {
+    const url = str.startsWith("http") ? str : `https://${str}`;
     return (
       <a
-        href={str.startsWith("http") ? str : `https://${str}`}
-        target="_blank" rel="noopener noreferrer"
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
         onClick={(e) => e.stopPropagation()}
-        className="text-blue-600 hover:underline truncate block max-w-[140px]"
-      >{str}</a>
-    );
-  }
-  if (key === "rating") return <span className="font-medium text-amber-600">{str}</span>;
-  if (key === "claimed") {
-    const yes = str.toLowerCase() === "true" || str.toLowerCase() === "yes";
-    return (
-      <span className={cn("inline-flex px-1.5 py-0.5 rounded text-xs font-medium",
-        yes ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600")}>
-        {yes ? "Yes" : "No"}
-      </span>
-    );
-  }
-  if (key === "enrichment_status") {
-    const s = str.toLowerCase();
-    return (
-      <span className={cn("inline-flex px-1.5 py-0.5 rounded text-xs font-medium",
-        s === "enriched" ? "bg-blue-100 text-blue-700" :
-        s === "pending"  ? "bg-yellow-100 text-yellow-700" :
-        "bg-gray-100 text-gray-600")}>
+        className="text-blue-600 hover:underline truncate block max-w-[160px]"
+      >
         {str}
-      </span>
+      </a>
     );
   }
-  return <span className="truncate block max-w-[160px]" title={str}>{str}</span>;
+  
+  return <span className="truncate block max-w-[180px]" title={str}>{str}</span>;
 }
 
 export function LeadsTable({ data, onRowClick, loading = false }: LeadsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  // Auto-detect extra column keys from extraFields on current page
-  const extraKeys = useMemo(() => {
+  // Auto-detect ALL column keys from the data that have at least one non-empty value
+  const allColumnKeys = useMemo(() => {
     const keys = new Set<string>();
     for (const row of data) {
+      // Get direct fields from the lead object - only add if value is non-empty
+      Object.entries(row).forEach(([k, v]) => {
+        if (!HIDDEN_FIELDS.has(k) && v !== null && v !== undefined && v !== "") {
+          keys.add(k);
+        }
+      });
+      // Get extra fields from extraFields JSON - only add if value is non-empty
       const ef = row.extraFields as Record<string, unknown> | null | undefined;
-      if (ef && typeof ef === "object") Object.keys(ef).forEach((k) => keys.add(k));
+      if (ef && typeof ef === "object") {
+        Object.entries(ef).forEach(([k, v]) => {
+          if (v !== null && v !== undefined && v !== "") {
+            keys.add(`extra:${k}`);
+          }
+        });
+      }
     }
-    return Array.from(keys).sort();
+    return Array.from(keys);
   }, [data]);
 
   // Build TanStack column definitions
@@ -166,31 +170,28 @@ export function LeadsTable({ data, onRowClick, loading = false }: LeadsTableProp
       },
     ];
 
-    const core: ColumnDef<Lead>[] = CORE_COLUMNS.map((col) => ({
-      id: col.key,
-      accessorKey: col.key,
-      header: col.label,
-      size: col.width,
-      cell: ({ getValue }) => renderCoreCell(col.key, getValue()),
-    }));
+    // Dynamic columns from data
+    const dynamicCols: ColumnDef<Lead>[] = allColumnKeys.map((key) => {
+      const isExtra = key.startsWith("extra:");
+      const actualKey = isExtra ? key.slice(6) : key;
+      
+      return {
+        id: key,
+        header: formatHeader(actualKey),
+        size: 150,
+        accessorFn: (row: Lead) => {
+          if (isExtra) {
+            const ef = row.extraFields as Record<string, unknown> | null | undefined;
+            return ef?.[actualKey] ?? "";
+          }
+          return row[key] ?? "";
+        },
+        cell: ({ getValue }) => renderCell(actualKey, getValue()),
+      };
+    });
 
-    const extra: ColumnDef<Lead>[] = extraKeys.map((key) => ({
-      id: `extra__${key}`,
-      header: key.replace(/_/g, " "),
-      size: 140,
-      accessorFn: (row: Lead) => {
-        const ef = row.extraFields as Record<string, unknown> | null | undefined;
-        return ef?.[key] ?? "";
-      },
-      cell: ({ getValue }) => {
-        const v = getValue() as string;
-        if (!v) return <span className="text-gray-300">—</span>;
-        return <span className="truncate block max-w-[140px] capitalize" title={v}>{v}</span>;
-      },
-    }));
-
-    return [...indicatorCols, ...core, ...extra];
-  }, [extraKeys]);
+    return [...indicatorCols, ...dynamicCols];
+  }, [allColumnKeys]);
 
   const table = useReactTable({
     data,
@@ -204,15 +205,6 @@ export function LeadsTable({ data, onRowClick, loading = false }: LeadsTableProp
 
   return (
     <div className="space-y-2 min-w-0">
-      {/* Info bar */}
-      {extraKeys.length > 0 && (
-        <div className="flex items-center gap-2 min-h-[28px]">
-          <p className="text-xs text-gray-500">
-            Showing {CORE_COLUMNS.length} core columns + {extraKeys.length} extra field{extraKeys.length !== 1 ? "s" : ""} from this CSV
-          </p>
-        </div>
-      )}
-
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <table className="w-full text-sm">
